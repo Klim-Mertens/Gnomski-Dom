@@ -1,12 +1,15 @@
 // Общие UI-помощники: текст и диалоговое окно.
-export const FONT = 'Verdana, "DejaVu Sans", Tahoma, sans-serif';
+// Основной шрифт — Alegreya Sans (чёткая кириллица), заголовки и цифры — Press Start 2P (пиксельный)
+export const FONT = '"Alegreya Sans", Verdana, sans-serif';
+export const PIXEL_FONT = '"Press Start 2P", monospace';
 
 export function txt(scene, x, y, str, size = 8, color = '#e8dccc', opts = {}) {
   const t = scene.add.text(x, y, str, {
-    fontFamily: FONT,
-    fontSize: `${Math.max(size, 7) + 1}px`, // мелкий текст плохо читается — +1 px ко всем
+    fontFamily: opts.pixel ? PIXEL_FONT : FONT,
+    // пиксельный шрифт широкий — уменьшаем; обычный — не мельче 9 px, иначе плохо читается
+    fontSize: opts.pixel ? `${Math.max(5, Math.round(size * 0.6))}px` : `${Math.max(size + 2, 9)}px`,
     color,
-    fontStyle: opts.bold ? 'bold' : 'normal',
+    fontStyle: opts.bold && !opts.pixel ? 'bold' : 'normal',
     align: opts.align || 'left',
     wordWrap: opts.wrap ? { width: opts.wrap } : undefined,
     stroke: opts.stroke || '#07040c',

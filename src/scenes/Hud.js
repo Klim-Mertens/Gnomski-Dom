@@ -10,11 +10,11 @@ export class HudScene extends Phaser.Scene {
   create() {
     this.forest = this.scene.get('Forest');
     this.g = this.add.graphics();
-    this.lvl = txt(this, 8, 6, '', 8, '#e0b040', { bold: true });
+    this.lvl = txt(this, 8, 5, '', 9, '#e0b040', { bold: true });
     this.rageHint = txt(this, 118, 30, 'R!', 8, '#ff9a3a', { bold: true }).setVisible(false);
-    this.status = txt(this, 8, 52, '', 7, '#8ad040');
+    this.status = txt(this, 8, 52, '', 8, '#8ad040');
     this.compNames = this.forest.companions.map((c, i) =>
-      txt(this, this.scale.width - 8, 8 + i * 18, HEROES[c.cid].name, 7, '#c8b8a8', { origin: [1, 0] }));
+      txt(this, this.scale.width - 8, 8 + i * 18, HEROES[c.cid].name, 8, '#c8b8a8', { origin: [1, 0] }));
     this.noStamFlash = 0;
     this.forest.events.on('noStamina', () => { this.noStamFlash = this.time.now + 300; });
   }

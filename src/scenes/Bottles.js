@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { txt } from '../systems/ui.js';
 import { WORLD } from '../gfx/palette.js';
+import { audio } from '../systems/audio.js';
 
 // Мини-игра: 10 бутылок в сосну. Точность (прицел) + реакция (сила броска).
 // Шестая бутылка ВСЕГДА трескается в руке и обливает героя вонючей жижей.
@@ -23,36 +24,67 @@ export class BottlesScene extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
     this.n = 0; this.hits = 0;
 
-    // Фон: небо, дальний лес, земля
-    const sky = this.add.graphics();
-    ['#0e0a1e', '#160f2c', '#1e143a', '#2a1a44'].forEach((c, i) => sky.fillStyle(Phaser.Display.Color.HexStringToColor(c).color).fillRect(0, i * 45, W, 46));
-    for (let i = 0; i < 26; i++) this.add.image(i * 20 + Phaser.Math.Between(-6, 6), 200 + Phaser.Math.Between(-10, 6), 'tree').setOrigin(0.5, 1).setTint(0x3a3a5a).setScale(1.2);
-    this.add.rectangle(0, 200, W, 70, 0x16201c).setOrigin(0);
+    this.sfx = (k, o) => audio(this.game).sfx(k, o);
+    audio(this.game).music('m_bottles', this, 800);
 
-    // Мишень: большая сосна
+    // Фон: туманное зелёное небо, три слоя леса (дальние — светлее и в тумане), земля
+    const sky = this.add.graphics();
+    const skyCols = [0x1c3a30, 0x24473a, 0x2e5644, 0x3a654e, 0x4a7458, 0x5a8262];
+    skyCols.forEach((c, i) => sky.fillStyle(c).fillRect(0, i * 36, W, 37));
+    const layer = (n, y, scale, tint, alpha) => {
+      for (let i = 0; i < n; i++) {
+        this.add.image(i * (W / (n - 1)) + Phaser.Math.Between(-10, 10), y + Phaser.Math.Between(-6, 6), `tree${Phaser.Math.Between(0, 4)}`)
+          .setOrigin(0.5, 1).setScale(scale * Phaser.Math.FloatBetween(0.85, 1.15)).setTint(tint).setAlpha(alpha).setFlipX(Math.random() < 0.5);
+      }
+    };
+    layer(16, 190, 0.9, 0x6a9a7a, 0.55);
+    this.add.tileSprite(0, 0, W, H, 'fog0').setOrigin(0).setTint(0xd8f0d8).setAlpha(0.8);
+    layer(11, 202, 1.3, 0x3a6048, 0.9);
+    this.add.tileSprite(0, 0, W, H, 'fog1').setOrigin(0).setTint(0xc8e8d0).setAlpha(0.6);
+    // земля: кусок лесной подстилки
+    this.add.tileSprite(0, 200, W, 70, 'forest_ground').setOrigin(0).setTilePosition(300, 120);
+    this.add.rectangle(0, 200, W, 3, 0x0e1a12, 0.6).setOrigin(0);
+    for (let i = 0; i < 18; i++) this.add.image(Phaser.Math.Between(0, W), Phaser.Math.Between(214, 266), `fern${i % 2}`).setOrigin(0.5, 1);
+    // лучи
+    [120, 260, 420].forEach((x, i) => {
+      const r = this.add.image(x, 210, 'ray').setOrigin(0.5, 1).setBlendMode('ADD').setTint(0xe8ffc8).setAlpha(0.35);
+      this.tweens.add({ targets: r, alpha: 0.15, duration: 3000 + i * 700, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    });
+
+    // Мишень: старая сосна с дуплом и веткой
     this.treeX = 340;
     const tg = this.add.graphics();
-    tg.fillStyle(0x2a1c18).fillRect(this.treeX - 10, 40, 20, 165);
-    tg.fillStyle(0x3a2820).fillRect(this.treeX - 10, 40, 6, 165);
-    tg.fillStyle(0x0e0a08).fillCircle(this.treeX + 1, 110, 6); // дупло
-    tg.fillStyle(0x2a1c18).fillRect(this.treeX + 10, 70, 46, 5); // ветка для белки
-    [[this.treeX, 10, 40, 60], [this.treeX, 30, 50, 90]].forEach(([cx, top, hw, bottom]) => {
-      tg.fillStyle(0x16262a);
-      tg.fillTriangle(cx, top, cx - hw, bottom, cx + hw, bottom);
-    });
+    tg.fillStyle(0x2a1c14).fillRect(this.treeX - 11, 30, 22, 178);
+    for (let y = 30; y < 208; y += 3) {           // кора: полосы и трещины
+      tg.fillStyle(0x3e2a1c).fillRect(this.treeX - 11, y, 7, 2);
+      tg.fillStyle(0x1a100a).fillRect(this.treeX + 3 + ((y * 7) % 5), y, 1, 2);
+    }
+    tg.fillStyle(0x4e3624).fillRect(this.treeX - 11, 30, 2, 178);
+    tg.fillStyle(0x2a1c14).fillTriangle(this.treeX - 11, 208, this.treeX - 22, 210, this.treeX - 11, 190);
+    tg.fillStyle(0x2a1c14).fillTriangle(this.treeX + 11, 208, this.treeX + 20, 210, this.treeX + 11, 192);
+    tg.fillStyle(0x0a0604).fillEllipse(this.treeX + 1, 110, 12, 15); // дупло
+    tg.fillStyle(0x2a1c14).fillRect(this.treeX + 10, 70, 48, 5);   // ветка для белки
+    tg.fillStyle(0x3e2a1c).fillRect(this.treeX + 10, 70, 48, 2);
+    // крона из лиственных «клубков», не закрывает ветку и дупло
+    [[-4, 6, 2.6], [-22, 18, 2.0], [16, 16, 2.1], [0, 26, 2.2], [-30, 32, 1.5], [26, 32, 1.4]].forEach(([dx, y, sc]) =>
+      this.add.image(this.treeX + dx, y, `bush${Math.abs(dx) % 3}`).setScale(sc).setTint(0x9ac0a0));
     this.squirrel = this.add.rectangle(this.treeX + 30, 64, 8, 7, 0xa0502a).setVisible(false);
     this.squirrelTail = this.add.rectangle(this.treeX + 25, 60, 4, 8, 0xc06a3a).setVisible(false);
 
-    // Герой
-    this.hero = this.add.image(70, 236, this.heroId).setOrigin(0.5, 1).setScale(1.5);
+    // Герой и отшельник на пне (ржёт над тобой)
+    this.hero = this.add.sprite(70, 238, this.heroId, 0).setOrigin(0.5, 0.97).play(`${this.heroId}_idle`);
+    this.add.ellipse(440, 236, 30, 8, 0x3a2818);
+    this.hermitSpr = this.add.sprite(440, 236, 'hermit', 0).setOrigin(0.5, 0.97).setFlipX(true).play('hermit_idle');
+    const lamp = this.add.image(425, 174, 'glow').setTint(0xffc070).setScale(1.5).setAlpha(0.6).setBlendMode('ADD');
+    this.tweens.add({ targets: lamp, alpha: 0.8, duration: 900, yoyo: true, repeat: -1 });
 
     // Интерфейс
-    this.counter = txt(this, 8, 6, '', 9, '#e8dccc', { bold: true });
-    this.targetLabel = txt(this, W / 2, 8, '', 9, '#e0b040', { origin: [0.5, 0], bold: true });
-    this.windLabel = txt(this, W - 8, 6, '', 8, '#6ff0e0', { origin: [1, 0] });
-    this.hint = txt(this, W / 2, H - 12, '', 7, '#a898a8', { origin: 0.5 });
+    this.counter = txt(this, 8, 6, '', 10, '#e8dccc', { bold: true });
+    this.targetLabel = txt(this, W / 2, 8, '', 10, '#e0b040', { origin: [0.5, 0], bold: true });
+    this.windLabel = txt(this, W - 8, 6, '', 9, '#6ff0e0', { origin: [1, 0] });
+    this.hint = txt(this, W / 2, H - 12, '', 8, '#a898a8', { origin: 0.5 });
     this.big = txt(this, W / 2, 108, '', 16, '#f0f4ff', { origin: 0.5, bold: true, strokeThickness: 3 }).setDepth(50);
-    this.sub = txt(this, W / 2, 122, '', 8, '#e8dccc', { origin: [0.5, 0], align: 'center', wrap: 380 }).setDepth(50);
+    this.sub = txt(this, W / 2, 124, '', 9, '#e8dccc', { origin: [0.5, 0], align: 'center', wrap: 380 }).setDepth(50);
     this.cross = this.add.graphics().setDepth(40);
     this.powerG = this.add.graphics().setDepth(40);
     this.green = this.add.rectangle(0, 0, W, H, 0x6a9a20, 0).setOrigin(0).setDepth(45);
@@ -65,7 +97,7 @@ export class BottlesScene extends Phaser.Scene {
       speed: { min: 60, max: 180 }, angle: { min: 180, max: 360 }, gravityY: 320, lifespan: 1100,
       scale: { start: 2, end: 0.8 }, tint: WORLD.stink, emitting: false,
     }).setDepth(30);
-    this.stinkCloud = this.add.particles(70, 200, 'px', {
+    this.stinkCloud = this.add.particles(70, 190, 'px', {
       x: { min: -14, max: 14 }, speedY: { min: -20, max: -8 }, lifespan: 1500, scale: { start: 1.5, end: 3 },
       alpha: { start: 0.6, end: 0 }, tint: WORLD.stink, frequency: 60, emitting: false,
     }).setDepth(31);
@@ -89,7 +121,7 @@ export class BottlesScene extends Phaser.Scene {
 
     // Бутылка в руке
     this.inHand?.destroy();
-    this.inHand = this.add.image(84, 206, 'bottle').setScale(1.4).setDepth(20);
+    this.inHand = this.add.image(88, 200, 'bottle').setScale(1.4).setDepth(20);
 
     if (this.n === STINKY_BOTTLE) return this.stinkyBottle();
     this.state = 'aim';
@@ -104,11 +136,16 @@ export class BottlesScene extends Phaser.Scene {
     this.tweens.add({ targets: this.inHand, angle: { from: -8, to: 8 }, duration: 70, yoyo: true, repeat: 8 });
     this.time.delayedCall(900, () => {
       this.sub.setText('*хрусь*');
+      this.sfx('s_glass', { volume: 0.4, rate: 1.6 });
     });
     this.time.delayedCall(1400, () => {
       this.inHand.destroy();
-      this.splash.explode(70, 84, 200);
-      this.glass.explode(16, 84, 204);
+      this.splash.explode(70, 88, 196);
+      this.glass.explode(16, 88, 200);
+      this.sfx('s_glass'); this.sfx('s_splash');
+      this.time.delayedCall(500, () => this.sfx('s_hurt', { rate: 0.9 }));
+      this.hero.play(`${this.heroId}_hurt`);
+      this.time.delayedCall(2500, () => this.hero.play(`${this.heroId}_idle`));
       this.hero.setTint(0x9ad050);
       this.stinkCloud.emitting = true;
       this.cameras.main.shake(400, 0.012);
@@ -123,6 +160,7 @@ export class BottlesScene extends Phaser.Scene {
   press() {
     if (this.state === 'aim') {
       this.lock = { ...this.aim };
+      this.sfx('s_click');
       this.state = 'power';
       this.powerT = 0;
       this.hint.setText('Пробел/клик — бросить. Лучшая сила — в золотой зоне');
@@ -188,7 +226,9 @@ export class BottlesScene extends Phaser.Scene {
       },
       onComplete: () => this.resolve(b, land),
     });
-    this.tweens.add({ targets: this.hero, angle: { from: -10, to: 6 }, duration: 120, yoyo: true });
+    this.hero.play({ key: `${this.heroId}_attack`, frameRate: 16 });
+    this.hero.once('animationcomplete', () => this.hero.play(`${this.heroId}_idle`));
+    this.sfx('s_throw');
   }
 
   resolve(b, land) {
@@ -200,11 +240,13 @@ export class BottlesScene extends Phaser.Scene {
       this.hits++;
       b.destroy();
       this.glass.explode(22, land.x, land.y);
+      this.sfx('s_glass');
       this.cameras.main.shake(100, 0.004);
       this.big.setText(this.target.type === 'squirrel' ? 'БЕЛКА В АУТЕ!' : 'ПОПАЛ!');
     } else if (onTrunk) {
       b.destroy();
       this.glass.explode(12, land.x, land.y);
+      this.sfx('s_glass', { volume: 0.6 });
       this.big.setText('Не туда, но дзынь');
     } else {
       this.tweens.add({ targets: b, y: 230, angle: b.angle + 200, duration: 400, ease: 'Quad.in', onComplete: () => b.destroy() });

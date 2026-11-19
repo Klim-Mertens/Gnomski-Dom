@@ -4,5 +4,5 @@ import { defineConfig } from 'vite';
 // https://klim-mertens.github.io/Gnomski-Dom/ (подпапка GitHub Pages)
 export default defineConfig({
   base: './',
-  build: { outDir: 'dist', assetsInlineLimit: 0, chunkSizeWarningLimit: 2000 },
+  build: { target: 'es2022', outDir: 'dist', assetsInlineLimit: 0, chunkSizeWarningLimit: 2000 },
 });
