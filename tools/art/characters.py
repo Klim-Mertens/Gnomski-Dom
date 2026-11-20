@@ -43,6 +43,9 @@ MAT = {
     "blade": ramp("#3a4048", "#6a7480", "#9aa6b4", "#c8d2dc", "#f2f6fa"),
     "wood": ramp("#24160e", "#3a2618", "#523822", "#6c4c30", "#8a6640"),
     "fur": ramp("#141216", "#24212a", "#38343e", "#4e4a56", "#6a6672"),
+    "cloth_grey": ramp("#1a1c22", "#2a2d36", "#3e424e", "#565c6a", "#727a88"),
+    "dress_wine": ramp("#200a14", "#3a1222", "#561c32", "#742844", "#94385a"),
+    "apron": ramp("#2a2620", "#46402f", "#665c44", "#8a7e5e", "#b0a47e"),
     "fur_light": ramp("#2e2a30", "#46404a", "#605a64", "#7c7680", "#9a94a0"),
 }
 GLOW = {"eye_red": hexc("#ff3040"), "eye_teal": hexc("#70f4e4"), "eye_white": hexc("#f0f0e0"),
@@ -369,6 +372,29 @@ def draw_head(c, kind, head, lean, bulk):
         c.ellipse(hx + 1.5, hy + 0.5, 2.2, 2.8, "skin_dead")
         c.glow(hx + 2, hy - 0.5, "eye_teal", 2)
         c.rect(round(hx + 1), round(hy + 3), 2, 1, "steel_dark")               # рот-дыра
+    elif kind == "cap":         # торговец: шапка-колпак, усы
+        c.ellipse(hx + 1, hy + 0.5, 2.8, 3.4, "skin")
+        c.poly([(hx - 4, hy - 1), (hx - 3, hy - 5), (hx + 1, hy - 7), (hx + 4, hy - 4), (hx + 4, hy - 1)], "cloak_green")
+        c.rect(round(hx - 4), round(hy - 2), 9, 2, "leather")
+        c.rect(round(hx + 1), round(hy + 2), 4, 1, "hair_grey")
+        c.glow(hx + 2, hy - 0.5, "eye_white", 1)
+    elif kind == "wild_grey":   # Маришка: копна седых волос
+        c.ellipse(hx - 1, hy - 0.5, 4.6, 5.2, "hair_grey")
+        c.poly([(hx - 5, hy), (hx - 7, hy + 6), (hx - 3, hy + 4), (hx - 4, hy + 8), (hx, hy + 3)], "hair_grey")
+        c.ellipse(hx + 1.5, hy + 0.5, 2.4, 3.0, "skin")
+        c.glow(hx + 2, hy - 0.5, "eye_red", 1)
+        c.rect(round(hx + 1), round(hy + 2), 3, 1, "dress_wine")
+    elif kind == "bald":        # сумасшедший: лысый, выпученные глаза
+        c.ellipse(hx + 0.5, hy, 3.4, 4.0, "skin")
+        c.rect(round(hx - 3), round(hy - 1), 2, 3, "hair_grey")
+        c.glow(hx + 2, hy - 1, "eye_white", 2)
+        c.rect(round(hx + 1), round(hy + 2), 3, 2, "cloak_red")             # орущий рот
+    elif kind == "helm_open":   # стражник / солдат Серой Роты
+        c.ellipse(hx + 0.5, hy, 3.6, 4.4, "steel")
+        c.ellipse(hx + 1.5, hy + 1, 2.2, 2.8, "skin")
+        c.rect(round(hx - 4), round(hy - 2), 9, 1, "steel")
+        c.rect(round(hx + 1), round(hy - 2), 1, 5, "steel")                  # наносник
+        c.glow(hx + 2.5, hy, "eye_white", 1)
     elif kind == "hermit":
         c.poly([(hx - 5, hy + 5), (hx - 4, hy - 4), (hx, hy - 6), (hx + 4, hy - 4), (hx + 5, hy + 1), (hx + 3, hy + 5)], "cloak_brown")
         c.ellipse(hx + 1.5, hy, 2.2, 2.6, "skin")
@@ -416,6 +442,24 @@ HERMIT = dict(armor="cloak_brown", under="leather", legs="cloak_brown", boots="l
               cloak="cloak_brown", head="hermit", weapon="staff", bulk=1.0, height=1)
 
 
+MERCHANT = dict(armor="cloak_green", under="leather", legs="leather", boots="leather", cloak="cloak_green",
+                head="cap", weapon="none", bulk=1.2, height=1, skirt="apron")
+MARISHKA = dict(armor="dress_wine", under="dress_wine", legs="cloth_rag", boots="leather", cloak="cloth_rag",
+                head="wild_grey", weapon="none", bulk=0.9, height=2, skirt="dress_wine")
+CRAZY = dict(armor="cloth_rag", under="cloth_rag", legs="cloth_rag", boots="skin", cloak="cloth_rag",
+             head="bald", weapon="none", bulk=0.95, height=1)
+GUARD = dict(armor="steel", under="tabard_blue", legs="cloth_grey", boots="leather", cloak="tabard_blue",
+             head="helm_open", weapon="spear", bulk=1.05, height=0)
+SOLDIER = dict(armor="steel_dark", under="cloth_grey", legs="cloth_grey", boots="leather",
+               cloak="cloth_grey", head="helm_open", weapon="sword_shield", bulk=1.05, height=0)
+
+
+def npc_anims():
+    walk = walk_cycle()
+    return {"idle": idle_cycle(), "walk": walk, "attack": [pose(hand_f=(6, -14), lean=0.15), pose(hand_f=(8, -18), lean=0.2)],
+            "dodge": idle_cycle()[:1], "hurt": [hurt_frame()]}
+
+
 def draw_hollow(c, spec, p):
     # Сгорбленный, руки до колен, когти вместо оружия
     p = dict(p); p["lean"] = p["lean"] + 0.35
@@ -436,9 +480,10 @@ def draw_humanoid_simple(c, spec, p):
     foot_b = (hip[0] + p["foot_b"][0] - 1, GROUND + p["foot_b"][1])
     hand_f = (hip[0] + p["hand_f"][0], hip[1] + p["hand_f"][1] + 17)
     hand_b = (hip[0] + p["hand_b"][0], hip[1] + p["hand_b"][1] + 17)
-    staff = spec["weapon"] == "staff"
+    staff = spec["weapon"] in ("staff", "spear")
     if staff:
         hand_f = (hip[0] + 8, hip[1] - 2)
+    skirt = spec.get("skirt")
     # лохмотья сзади
     c.poly([(sh_b[0], sh_b[1] - 1), (sh_b[0] - 6 - p["cloak"] * 8, hip[1] + 14), (sh_b[0] - 1, hip[1] + 12),
             (sh_b[0] + 3, hip[1] + 15), (neck[0] + 2, neck[1] + 4)], spec["cloak"])
@@ -449,19 +494,25 @@ def draw_humanoid_simple(c, spec, p):
     tw = 8 * bulk
     c.poly([(hip[0] - tw / 2, hip[1] + 3), (hip[0] + tw / 2, hip[1] + 3), (sh_f[0] + tw / 2, sh_f[1]), (sh_b[0] - tw / 2, sh_b[1])], spec["armor"])
     c.rect(round(hip[0] - tw / 2), round(hip[1]), round(tw), 2, "leather")
+    if skirt:   # юбка / фартук до колен
+        c.poly([(hip[0] - tw / 2, hip[1]), (hip[0] + tw / 2, hip[1]), (hip[0] + tw / 2 + 3, hip[1] + 13), (hip[0] - tw / 2 - 3, hip[1] + 13)], skirt)
     knee_f, _ = ik(hip, foot_f, 9, 9.5, -1)
     c.limb(hip, knee_f, 3.5, spec["legs"]); c.limb(knee_f, foot_f, 3, spec["legs"])
     draw_head(c, spec["head"], head, lean, bulk)
-    if staff:
+    if spec["weapon"] == "staff":
         top = (hand_f[0] + 1, hand_f[1] - 22)
         c.limb((hand_f[0] + 1, GROUND), top, 2, "wood")
         c.rect(round(top[0]) - 2, round(top[1]) - 5, 5, 5, "gold")
         c.glow(top[0] - 1, top[1] - 3, "lamp", 3)
         c.glow(top[0], top[1] - 4, "lamp", 1)
+    elif spec["weapon"] == "spear":
+        top = (hand_f[0] + 1, hand_f[1] - 30)
+        c.limb((hand_f[0] + 1, GROUND), top, 2, "wood")
+        c.poly([(top[0] - 2, top[1] + 1), (top[0], top[1] - 6), (top[0] + 2, top[1] + 1)], "blade")
     elb_f, hf = ik(sh_f, hand_f, 8, 9, 1)
     arm_mat = spec["armor"] if staff else spec["legs"]
     c.limb(sh_f, elb_f, 3, arm_mat); c.limb(elb_f, hf, 2.5, "skin" if staff else spec["legs"])
-    if not staff:  # когти
+    if spec["weapon"] == "claws":  # когти
         for k in (-1, 0, 1):
             c.limb(hf, (hf[0] + 3, hf[1] + 1 + k * 1.5), 1, "fur_light")
 
@@ -555,6 +606,10 @@ def build():
     meta["hermit"] = sheet("hermit", HERMIT, {"idle": idle_cycle(), "walk": idle_cycle()[:1], "attack": idle_cycle()[:1],
                                               "dodge": idle_cycle()[:1], "hurt": [hurt_frame()]}, draw_humanoid_simple)
     meta["wolf"] = wolf_sheet()
+    for name, spec in (("merchant", MERCHANT), ("marishka", MARISHKA), ("crazy", CRAZY), ("guard", GUARD)):
+        meta[name] = sheet(name, spec, npc_anims(), draw_humanoid_simple)
+    _, anims = frames_for("edrik")
+    meta["soldier"] = sheet("soldier", SOLDIER, anims, draw_humanoid)
     with open(os.path.join(OUT, "anims.json"), "w") as f:
         json.dump(meta, f, indent=1)
 

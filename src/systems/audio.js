@@ -4,9 +4,9 @@ const MUSIC_VOL = 0.45;
 const SFX_VOL = 0.7;
 const MUTE_KEY = 'gnomski-dom-mute';
 
-export const MUSIC = ['m_title', 'm_forest', 'm_battle', 'm_campfire', 'm_bottles'];
+export const MUSIC = ['m_title', 'm_forest', 'm_battle', 'm_campfire', 'm_bottles', 'm_city', 'm_bazaar', 'm_fortress'];
 export const SFX = ['s_swing', 's_swing_heavy', 's_hit', 's_metal', 's_step', 's_dodge', 's_glass', 's_splash',
-  's_levelup', 's_growl', 's_yelp', 's_groan', 's_hurt', 's_death', 's_click', 's_rage', 's_fire', 's_heal', 's_throw'];
+  's_levelup', 's_growl', 's_yelp', 's_groan', 's_hurt', 's_death', 's_click', 's_rage', 's_fire', 's_heal', 's_throw', 's_crowd', 's_door'];
 
 export function preloadAudio(scene) {
   [...MUSIC, ...SFX].forEach((k) => scene.load.audio(k, `assets/audio/${k}.mp3`));

@@ -454,11 +454,100 @@ def sfx_heal():
     return tr.render(0.5)[:int(1.2 * SR)]
 
 
+def theme_city():
+    """Ночной Остенград: ре минор, медленная лютня, флейта издалека, колокол."""
+    tr = Track(80, 16)
+    prog = [["D3", "A3", "D4", "F4"], ["A#2", "F3", "A#3", "D4"], ["C3", "G3", "C4", "E4"], ["A2", "E3", "A3", "C#4"]]
+    for bar in range(16):
+        ch = [n(x) for x in prog[bar % 4]]
+        for k, idx in enumerate([0, 2, 1, 3, 2, 1]):
+            tr.note(pluck, bar * 4 + k * (4 / 6), 1.8, ch[idx], 0.65)
+        tr.chord(pad, bar * 4, 4, ch[1:3], 0.3)
+        tr.note(bass, bar * 4, 3.5, ch[0] - 12, 0.5)
+    mel = [(16, "A4", 2), (18, "D5", 1), (19, "E5", 1), (20, "F5", 3), (23, "E5", 1), (24, "D5", 2), (26, "C5", 2),
+           (28, "A4", 4), (36, "F5", 1.5), (37.5, "G5", .5), (38, "A5", 2), (40, "G5", 1), (41, "F5", 1), (42, "E5", 2),
+           (44, "C#5", 4), (48, "D5", 2), (50, "F5", 2), (52, "E5", 2), (54, "C5", 2), (56, "D5", 6)]
+    for b, name, d in mel:
+        tr.note(flute, b, d, n(name), 0.7)
+    for b in (0, 32):   # далёкий колокол
+        tr.note(lambda f, dur: tri_note(f, dur) * np.exp(-np.linspace(0, 6, int(dur * SR))), b, 6, n("D3"), 0.5)
+    return tr.render(0.45)
+
+
+def theme_bazaar():
+    """Базар: бодрая «ярмарочная» пляска в ре дорийском, бубен и хлопки."""
+    tr = Track(132, 16)
+    prog = [["D3", "A3", "D4"], ["C3", "G3", "C4"], ["D3", "A3", "D4"], ["A2", "E3", "A3"]]
+    for bar in range(16):
+        ch = [n(x) for x in prog[bar % 4]]
+        for k in range(8):
+            tr.note(pluck, bar * 4 + k * 0.5, 0.6, ch[k % 3] + (12 if k % 4 == 3 else 0), 0.55)
+        tr.note(bass, bar * 4, 1, ch[0] - 12, 0.6); tr.note(bass, bar * 4 + 2, 1, ch[0] - 5, 0.5)
+        for k in range(4):
+            tr.add(bar * 4 + k, kick(0.25), 0.5 if k % 2 == 0 else 0.0)
+            tr.add(bar * 4 + k + 0.5, hat(0.05), 0.35)
+            if k % 2 == 1:
+                tr.add(bar * 4 + k, snare(0.18), 0.35)
+    phrase = ["D5", "E5", "F5", "G5", "A5", "G5", "F5", "E5", "D5", "C5", "D5", "E5", "F5", "E5", "D5", "A4"]
+    for rep in range(2):
+        for k, name in enumerate(phrase):
+            tr.note(lead, 16 + rep * 32 + k * 1.0, 0.9, n(name), 0.35)
+            tr.note(flute, 16 + rep * 32 + k * 1.0, 0.9, n(name) + 12, 0.25)
+    return tr.render(0.25)
+
+
+def theme_fortress():
+    """Цитадель Регента: гул, хор, редкие удары — давящая, фиолетовая."""
+    tr = Track(60, 12)
+    for bar in range(12):
+        root = n(["C3", "C3", "C#3", "B2"][bar % 4])
+        tr.note(pad, bar * 4, 4.2, root - 12, 0.5)
+        tr.chord(choir, bar * 4, 4.2, [root, root + 3, root + 7], 0.35)
+        tr.add(bar * 4, taiko(1.2), 0.6)
+        if bar % 2:
+            tr.add(bar * 4 + 2.5, taiko(0.9), 0.3)
+    for b, name, d in [(8, "G4", 4), (12, "G#4", 4), (16, "G4", 2), (18, "D#4", 2), (20, "D4", 4),
+                       (32, "C5", 4), (36, "B4", 4), (40, "G4", 8)]:
+        tr.note(choir, b, d, n(name), 0.4)
+    return tr.render(0.5)
+
+
+def sfx_crowd_loop(dur=6.0):
+    """Гул толпы на базаре: много «голосов» — полосовой шум с огибающими слогов."""
+    t = int(dur * SR)
+    out = np.zeros(t)
+    for _ in range(40):
+        f = rng.uniform(250, 900)
+        noise = bp(rng.normal(0, 1, t), f * 0.8, f * 1.3)
+        syll = (np.sin(np.linspace(0, dur * rng.uniform(3, 7) * 2 * np.pi, t) + rng.uniform(0, 6)) > 0.2).astype(float)
+        syll = lp(syll, 12)
+        out += noise * syll * rng.uniform(0.2, 1)
+    out /= np.abs(out).max() + 1e-9
+    fade = int(0.3 * SR)   # бесшовная петля
+    out[:fade] = out[:fade] * np.linspace(0, 1, fade) + out[-fade:] * np.linspace(1, 0, fade)
+    return out[:-fade] * 0.6
+
+
+def sfx_door():
+    """Тяжёлая запертая дверь: глухой удар и лязг засова."""
+    thud = lp(rng.normal(0, 1, int(0.4 * SR)), 300) * np.exp(-np.linspace(0, 8, int(0.4 * SR)))
+    clank = sfx_hit_metal()[: int(0.3 * SR)] * 0.5
+    out = np.zeros(int(0.7 * SR)); out[:len(thud)] += thud * 2; out[int(0.15 * SR):int(0.15 * SR) + len(clank)] += clank
+    return out / (np.abs(out).max() + 1e-9) * 0.9
+
+
 def build():
     music = {"m_title": theme_title, "m_forest": theme_forest, "m_battle": theme_battle,
-             "m_campfire": theme_campfire, "m_bottles": theme_bottles}
+             "m_campfire": theme_campfire, "m_bottles": theme_bottles,
+             "m_city": theme_city, "m_bazaar": theme_bazaar, "m_fortress": theme_fortress}
     import sys
-    if "--sfx" not in sys.argv:
+    only = next((a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--only=")), None)
+    if only:   # перегенерировать только указанные файлы
+        for name in only:
+            fn = music.get(name)
+            if fn:
+                write_mp3(fn(), name, quality=5)
+    elif "--sfx" not in sys.argv:
         for name, fn in music.items():
             write_mp3(fn(), name, quality=5)
     sfx = {"s_swing": sfx_swing, "s_swing_heavy": lambda: sfx_swing(True), "s_hit": sfx_hit_flesh,
@@ -466,7 +555,10 @@ def build():
            "s_splash": sfx_splash, "s_levelup": sfx_levelup, "s_growl": sfx_wolf_growl, "s_yelp": sfx_wolf_yelp,
            "s_groan": sfx_groan, "s_hurt": sfx_hurt, "s_death": sfx_death, "s_click": sfx_click,
            "s_rage": sfx_rage, "s_fire": sfx_fire_loop, "s_heal": sfx_heal, "s_throw": lambda: sfx_swing() * 0.6}
+    sfx.update({"s_crowd": sfx_crowd_loop, "s_door": sfx_door})
     for name, fn in sfx.items():
+        if only and name not in only:
+            continue
         write_mp3(fn(), name, quality=4)
 
 
