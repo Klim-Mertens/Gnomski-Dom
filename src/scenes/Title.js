@@ -73,6 +73,8 @@ export class TitleScene extends Phaser.Scene {
     save(data);
     audio(this.game).sfx('s_swing_heavy');
     this.cameras.main.fadeOut(600, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Forest', { save: data }));
+    const scene = { forest: 'Forest', city: 'City', fortress: 'Fortress' }[data.loc] || 'Forest';
+    const entry = data.loc === 'city' ? 'forest' : data.loc === 'fortress' ? 'city' : 'start';
+    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start(scene, { save: data, entry }));
   }
 }

@@ -14,7 +14,8 @@ export function defaultSave(hero) {
     level: 1,
     xp: 0,
     bonus: { str: 0, dex: 0, con: 0, wil: 0 }, // очки, вложенные игроком
-    flags: { bottlesDone: false },
+    loc: 'forest',                             // где герой: forest | city | fortress
+    flags: { bottlesDone: false, seenCity: false, cityIntro: false, bazaarDone: false, seenFortress: false, fortressIntro: false },
     trust: { valder: 0, edrik: 0, yarka: 0 },
   };
 }
@@ -26,7 +27,8 @@ export function validate(raw) {
   s.level = clampInt(raw.level, 1, MAX_LEVEL, 1);
   s.xp = clampInt(raw.xp, 0, 1e6, 0);
   for (const k of Object.keys(s.bonus)) s.bonus[k] = clampInt(raw.bonus?.[k], 0, 30, 0);
-  s.flags.bottlesDone = raw.flags?.bottlesDone === true;
+  for (const k of Object.keys(s.flags)) s.flags[k] = raw.flags?.[k] === true;   // только true/false
+  s.loc = ['forest', 'city', 'fortress'].includes(raw.loc) ? raw.loc : 'forest';
   for (const k of Object.keys(s.trust)) s.trust[k] = clampInt(raw.trust?.[k], 0, 100, 0);
   return s;
 }

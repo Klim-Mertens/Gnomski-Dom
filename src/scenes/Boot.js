@@ -3,7 +3,7 @@ import { buildFxTextures } from '../gfx/sprites.js';
 import { preloadAudio, audio } from '../systems/audio.js';
 import { txt } from '../systems/ui.js';
 
-export const SPRITES = ['valder', 'edrik', 'yarka', 'hollow', 'wolf', 'hermit'];
+export const SPRITES = ['valder', 'edrik', 'yarka', 'hollow', 'wolf', 'hermit', 'merchant', 'marishka', 'crazy', 'guard', 'soldier'];
 export const FRAME = 80;
 const FPS = { idle: 5, walk: 10, attack: 14, dodge: 16, hurt: 8, dead: 1 };
 
@@ -21,10 +21,21 @@ export class BootScene extends Phaser.Scene {
     const G = 'assets/gfx/';
     this.load.json('anims', G + 'anims.json');
     this.load.json('forestPath', G + 'forest_path.json');
+    this.load.json('cityLayout', G + 'city_layout.json');
+    this.load.json('fortressLayout', G + 'fortress_layout.json');
     SPRITES.forEach((k) => this.load.spritesheet(k, G + k + '.png', { frameWidth: FRAME, frameHeight: FRAME }));
     ['forest_ground', 'fog0', 'fog1', 'ray',
       'tree0', 'tree1', 'tree2', 'tree3', 'tree4', 'bush0', 'bush1', 'bush2', 'fern0', 'fern1', 'rock0', 'rock1',
       'cs_sky', 'cs_mtn_far', 'cs_fog_far', 'cs_mtn_near', 'cs_pines_far', 'cs_tower', 'cs_fog_near', 'cs_pines_near',
+      // город
+      'city_ground', 'castle', 'house0', 'house1', 'house2', 'house3', 'house4', 'house5',
+      'stall0', 'stall1', 'stall2', 'lamp', 'well', 'barrel', 'crate',
+      // цитадель
+      'fortress_floor', 'iso_hi0', 'iso_hi1', 'iso_win0', 'iso_win_r0', 'iso_door0', 'iso_lo0', 'iso_lo1', 'iso_tower0',
+      'torch', 'brazier', 'rubble0', 'rubble1',
+      // катсцены глав
+      'cs2_sky', 'cs2_castle', 'cs2_fog', 'cs2_roofs_far', 'cs2_roofs_near', 'cs2_street',
+      'cs3_sky', 'cs3_cliffs', 'cs3_fortress', 'cs3_fog_far', 'cs3_fog_near',
     ].forEach((k) => this.load.image(k, G + k + '.png'));
     preloadAudio(this);
   }

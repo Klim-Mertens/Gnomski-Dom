@@ -7,8 +7,8 @@ import { txt } from '../systems/ui.js';
 export class HudScene extends Phaser.Scene {
   constructor() { super('Hud'); }
 
-  create() {
-    this.forest = this.scene.get('Forest');
+  create(data) {
+    this.forest = this.scene.get(data?.field || 'Forest');   // любая локация с героем
     this.g = this.add.graphics();
     this.lvl = txt(this, 8, 5, '', 9, '#e0b040', { bold: true });
     this.rageHint = txt(this, 118, 30, 'R!', 8, '#ff9a3a', { bold: true }).setVisible(false);
@@ -16,7 +16,9 @@ export class HudScene extends Phaser.Scene {
     this.compNames = this.forest.companions.map((c, i) =>
       txt(this, this.scale.width - 8, 8 + i * 18, HEROES[c.cid].name, 8, '#c8b8a8', { origin: [1, 0] }));
     this.noStamFlash = 0;
-    this.forest.events.on('noStamina', () => { this.noStamFlash = this.time.now + 300; });
+    const onNoStam = () => { this.noStamFlash = this.time.now + 300; };
+    this.forest.events.on('noStamina', onNoStam);
+    this.events.once('shutdown', () => this.forest.events.off('noStamina', onNoStam));
   }
 
   bar(x, y, w, h, frac, color, back = 0x1a1024) {
